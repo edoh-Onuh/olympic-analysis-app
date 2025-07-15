@@ -1,0 +1,6 @@
+streamlit
+pandas
+optuna
+catboost
+scikit-learn
+plotly

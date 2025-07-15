@@ -1,0 +1,346 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 🥇 Olympic Gold Medal Analysis: A Gender Perspective\n",
+    "\n",
+    "### **Objective**\n",
+    "This notebook explores the 120-year Olympic history dataset to uncover insights into gender trends, particularly among gold medal winners. We will analyze participation rates, physical attributes, and performance across different sports and nations.\n",
+    "\n",
+    "### **Key Questions**\n",
+    "1. How has female vs. male athlete participation evolved over time?\n",
+    "2. What are the trends in gold medals won by gender?\n",
+    "3. How do the physical attributes (age, height, weight) of gold medalists differ by gender?\n",
+    "4. Which sports are the most and least balanced in terms of gender representation among gold medalists?\n",
+    "5. Which countries show the greatest gender parity in winning gold medals?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Setup and Configuration\n",
+    "\n",
+    "First, we'll import the necessary libraries and configure our environment. We will also create a directory to save our plots."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import os\n",
+    "\n",
+    "# --- Configuration ---\n",
+    "# Set a visually appealing style for plots\n",
+    "sns.set_style(\"whitegrid\")\n",
+    "plt.rcParams['figure.figsize'] = (12, 8)\n",
+    "plt.rcParams['font.size'] = 12\n",
+    "\n",
+    "# Create a directory to save our plots for GitHub\n",
+    "PLOTS_DIR = \"outputs/plots\"\n",
+    "os.makedirs(PLOTS_DIR, exist_ok=True)\n",
+    "\n",
+    "print(\"Setup Complete. Plots will be saved in:\", PLOTS_DIR)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Data Loading and Preprocessing\n",
+    "\n",
+    "We'll load the `athlete_events.csv` dataset and perform essential cleaning steps like handling duplicates and missing values."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    df = pd.read_csv('data/athlete_events.csv')\n",
+    "    print(\"Dataset loaded successfully.\")\n",
+    "except FileNotFoundError:\n",
+    "    print(\"Error: 'data/athlete_events.csv' not found. Please ensure the dataset is in the correct directory.\")\n",
+    "\n",
+    "# --- Data Cleaning ---\n",
+    "# Remove duplicates\n",
+    "df.drop_duplicates(inplace=True)\n",
+    "\n",
+    "# Fill missing medal data - crucial for our analysis\n",
+    "df['Medal'].fillna('No Medal', inplace=True)\n",
+    "\n",
+    "# Create a boolean column for easier filtering\n",
+    "df['Gold_Medal'] = df['Medal'] == 'Gold'\n",
+    "\n",
+    "print(\"Initial Data Overview:\")\n",
+    "df.info()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Insight 1: The Rise of Female Participation\n",
+    "\n",
+    "Before focusing on gold medals, let's look at the overall trend of athlete participation. This context is vital to understanding the entire picture."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# We only want to analyze Summer Olympics for this trend for consistency\n",
+    "df_summer = df[df['Season'] == 'Summer']\n",
+    "\n",
+    "participation_trends = df_summer.groupby(['Year', 'Sex'])['ID'].nunique().unstack('Sex').fillna(0)\n",
+    "\n",
+    "plt.figure(figsize=(14, 8))\n",
+    "plt.stackplot(participation_trends.index, \n",
+    "              participation_trends['M'], \n",
+    "              participation_trends['F'], \n",
+    "              labels=['Male', 'Female'], \n",
+    "              colors=['#3498db', '#e74c3c'],\n",
+    "              alpha=0.8)\n",
+    "\n",
+    "plt.title('Evolution of Athlete Participation in Summer Olympics by Gender', fontsize=18, fontweight='bold')\n",
+    "plt.xlabel('Year', fontsize=14)\n",
+    "plt.ylabel('Number of Unique Athletes', fontsize=14)\n",
+    "plt.legend(loc='upper left')\n",
+    "plt.grid(True, which='both', linestyle='--', linewidth=0.5)\n",
+    "\n",
+    "# Save the plot for GitHub\n",
+    "plt.savefig(os.path.join(PLOTS_DIR, '01_participation_trends.png'), bbox_inches='tight')\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Observation:** The chart clearly illustrates the dramatic increase in female participation over the last century, moving towards a more balanced representation in recent games."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Insight 2: Physical Attributes of Gold Medalists\n",
+    "\n",
+    "How do the physical attributes of male and female gold medalists compare? We will examine the distributions of age, height, and weight."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "gold_medalists = df[df['Gold_Medal']].dropna(subset=['Age', 'Height', 'Weight'])\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 3, figsize=(20, 7))\n",
+    "fig.suptitle('Physical Attribute Distributions of Gold Medalists by Gender', fontsize=20, fontweight='bold')\n",
+    "\n",
+    "# Age Distribution\n",
+    "sns.violinplot(ax=axes[0], data=gold_medalists, x='Sex', y='Age', palette={'M': '#3498db', 'F': '#e74c3c'})\n",
+    "axes[0].set_title('Age Distribution', fontsize=16)\n",
+    "axes[0].set_xlabel('Gender')\n",
+    "axes[0].set_ylabel('Age (years)')\n",
+    "\n",
+    "# Height Distribution\n",
+    "sns.violinplot(ax=axes[1], data=gold_medalists, x='Sex', y='Height', palette={'M': '#3498db', 'F': '#e74c3c'})\n",
+    "axes[1].set_title('Height Distribution', fontsize=16)\n",
+    "axes[1].set_xlabel('Gender')\n",
+    "axes[1].set_ylabel('Height (cm)')\n",
+    "\n",
+    "# Weight Distribution\n",
+    "sns.violinplot(ax=axes[2], data=gold_medalists, x='Sex', y='Weight', palette={'M': '#3498db', 'F': '#e74c3c'})\n",
+    "axes[2].set_title('Weight Distribution', fontsize=16)\n",
+    "axes[2].set_xlabel('Gender')\n",
+    "axes[2].set_ylabel('Weight (kg)')\n",
+    "\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.96])\n",
+    "plt.savefig(os.path.join(PLOTS_DIR, '02_physical_attributes.png'), bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Observation:** As expected, there are clear differences in the distributions of height and weight between male and female gold medalists. The age distribution, however, is more similar, with the core concentration for both genders typically in the early to mid-20s."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Insight 3: Height vs. Weight across Sports\n",
+    "\n",
+    "This visualization shows how the relationship between height and weight varies for gold medalists across different sports, highlighting the specific physical demands of each discipline."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "top_sports = gold_medalists['Sport'].value_counts().nlargest(9).index\n",
+    "gold_top_sports = gold_medalists[gold_medalists['Sport'].isin(top_sports)]\n",
+    "\n",
+    "g = sns.FacetGrid(gold_top_sports, col=\"Sport\", hue=\"Sex\", col_wrap=3, height=5, \n",
+    "                  palette={'M': '#3498db', 'F': '#e74c3c'})\n",
+    "g.map(sns.scatterplot, \"Weight\", \"Height\", alpha=0.7)\n",
+    "g.add_legend()\n",
+    "g.fig.suptitle('Height vs. Weight of Gold Medalists in Top Sports', fontsize=20, fontweight='bold', y=1.03)\n",
+    "\n",
+    "plt.savefig(os.path.join(PLOTS_DIR, '03_height_weight_sports.png'), bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Observation:** This detailed view is fascinating. Sports like Basketball and Volleyball clearly favor taller athletes, while sports like Gymnastics favor smaller, lighter athletes. The separation between male and female clusters is also evident within each sport."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Insight 4: Gender Balance in Different Sports\n",
+    "\n",
+    "Which sports have the highest and lowest proportion of female gold medalists? This reveals which disciplines have historically been more female-dominated versus male-dominated."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sport_gender_counts = gold_medalists.groupby(['Sport', 'Sex'])['ID'].count().unstack('Sex').fillna(0)\n",
+    "sport_gender_counts['Total'] = sport_gender_counts['F'] + sport_gender_counts['M']\n",
+    "\n",
+    "# Filter for sports with a meaningful number of gold medals to avoid noise\n",
+    "meaningful_sports = sport_gender_counts[sport_gender_counts['Total'] > 50]\n",
+    "meaningful_sports['Female_Ratio'] = meaningful_sports['F'] / meaningful_sports['Total']\n",
+    "\n",
+    "top_female_sports = meaningful_sports.sort_values('Female_Ratio', ascending=False).head(10)\n",
+    "top_male_sports = meaningful_sports.sort_values('Female_Ratio', ascending=True).head(10)\n",
+    "\n",
+    "fig, axes = plt.subplots(2, 1, figsize=(14, 16))\n",
+    "fig.suptitle('Gender Balance Across Olympic Sports (Gold Medals)', fontsize=20, fontweight='bold')\n",
+    "\n",
+    "# Top Female-Dominant Sports\n",
+    "sns.barplot(ax=axes[0], x=top_female_sports['Female_Ratio'], y=top_female_sports.index, color='#e74c3c')\n",
+    "axes[0].set_title('Top 10 Sports with Highest Proportion of Female Gold Medalists', fontsize=16)\n",
+    "axes[0].set_xlabel('Proportion of Gold Medals Won by Women')\n",
+    "axes[0].set_ylabel('Sport')\n",
+    "axes[0].set_xlim(0, 1)\n",
+    "\n",
+    "# Top Male-Dominant Sports\n",
+    "sns.barplot(ax=axes[1], x=top_male_sports['Female_Ratio'], y=top_male_sports.index, color='#3498db')\n",
+    "axes[1].set_title('Top 10 Sports with Lowest Proportion of Female Gold Medalists', fontsize=16)\n",
+    "axes[1].set_xlabel('Proportion of Gold Medals Won by Women')\n",
+    "axes[1].set_ylabel('Sport')\n",
+    "axes[1].set_xlim(0, 1)\n",
+    "\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.96])\n",
+    "plt.savefig(os.path.join(PLOTS_DIR, '04_gender_balance_sports.png'), bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. Insight 5: Gender Parity by Nation\n",
+    "\n",
+    "Finally, let's examine which countries are closest to achieving a 50/50 split in gold medals between their male and female athletes. This is a powerful indicator of gender equity in sports at a national level."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "national_gender_counts = gold_medalists.groupby(['NOC', 'Sex'])['ID'].count().unstack('Sex').fillna(0)\n",
+    "national_gender_counts['Total'] = national_gender_counts['F'] + national_gender_counts['M']\n",
+    "\n",
+    "# We only look at nations with a high number of medals for a stable ratio\n",
+    "major_nations = national_gender_counts[national_gender_counts['Total'] > 200].copy()\n",
+    "major_nations['Parity'] = major_nations['F'] / major_nations['Total']\n",
+    "\n",
+    "# We want the countries closest to 0.5\n",
+    "major_nations['Distance_from_Parity'] = abs(major_nations['Parity'] - 0.5)\n",
+    "most_balanced_nations = major_nations.sort_values('Distance_from_Parity').head(15)\n",
+    "\n",
+    "plt.figure(figsize=(12, 10))\n",
+    "sns.barplot(data=most_balanced_nations, y=most_balanced_nations.index, x='Parity', palette=['#2ecc71'])\n",
+    "plt.axvline(x=0.5, color='red', linestyle='--', linewidth=2, label='Perfect Parity (0.5)')\n",
+    "\n",
+    "plt.title('Top 15 Nations by Gender Parity in Gold Medals (Total > 200)', fontsize=18, fontweight='bold')\n",
+    "plt.xlabel('Proportion of Gold Medals Won by Women', fontsize=14)\n",
+    "plt.ylabel('Nation (NOC)', fontsize=14)\n",
+    "plt.legend()\n",
+    "plt.xlim(0, 1)\n",
+    "\n",
+    "plt.savefig(os.path.join(PLOTS_DIR, '05_gender_parity_nations.png'), bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Conclusion\n",
+    "\n",
+    "This analysis has provided a multi-faceted view of gender in the Olympic Games. Key takeaways include:\n",
+    "\n",
+    "- **Growing Equality:** Female participation has surged over the past 50 years, closing the gap with male participation significantly.\n",
+    "- **Distinct Physical Profiles:** While age distributions are similar, the physical characteristics of gold medalists vary distinctly by gender, tailored to the demands of their sports.\n",
+    "- **Sport-Specific Balance:** Some sports like Rhythmic Gymnastics and Synchronized Swimming are almost exclusively female at the gold medal level, while others like Boxing and Wrestling remain heavily male-dominated.\n",
+    "- **National Parity Leaders:** Nations like China, the United States, and Australia are among the leaders in achieving gender parity in gold medal success, reflecting strong national support for both male and female athletic programs.\n",
+    "\n",
+    "This notebook provides a robust foundation for further analysis, such as exploring the impact of specific historical events or socioeconomic factors on these trends."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.4"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

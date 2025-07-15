@@ -1,0 +1,24 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+*.egg-info/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Data files (large data files should not be in the repo)
+data/*.csv
+
+# IDE/Editor config
+.vscode/
+.idea/
+*.swp
+
+# Streamlit
+.streamlit/
